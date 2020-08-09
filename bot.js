@@ -62,7 +62,7 @@ const connector = new builder.ChatConnector({
     openIdMetadata: this.BOT_META
 });
 
-// Прослушивание сообщений от пользователей
+// Listen for messages from users
 server.post('/api/messages', connector.listen());
 
 const bot = new builder.UniversalBot(connector);
