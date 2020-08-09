@@ -62,6 +62,9 @@ const connector = new builder.ChatConnector({
     openIdMetadata: this.BOT_META
 });
 
+// Прослушивание сообщений от пользователей
+server.post('/api/messages', connector.listen());
+
 const bot = new builder.UniversalBot(connector);
 bot.use(builder.Middleware.dialogVersion({
     version: 1.0,
@@ -71,9 +74,6 @@ bot.use(builder.Middleware.dialogVersion({
 // Регистрация хранилища в памяти
 const inMemoryStorage = new builder.MemoryBotStorage();
 bot.set('storage', inMemoryStorage);
-
-// Прослушивание сообщений от пользователей
-server.post('/api/messages', () => connector.listen());
 
 // // Прослушивание запросов от GitLab
 // server.post('/api/projects/:project/actions/:action/notifications', (req, res, next) => {
@@ -104,6 +104,10 @@ server.post('/api/messages', () => connector.listen());
 // bot.dialog('/', [
 //     (session) => session.endDialog()
 // ]);
+
+bot.dialog('/', [
+    (session) => session.send(`You said: "${session.message.text}". Sorry, but i didn't understand ... Please type help for instructions.`)
+]);
 
 // Приветствие
 //
