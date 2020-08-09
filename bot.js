@@ -1,7 +1,5 @@
 const restify = require('restify');
 const builder = require('botbuilder');
-const botbuilder_azure = require("botbuilder-azure");
-const EventSource = require("eventsource");
 const axios = require('axios');
 const assert = require('assert');
 const body_parser = require('body-parser');
