@@ -62,6 +62,8 @@ const connector = new builder.ChatConnector({
     openIdMetadata: this.BOT_META
 });
 
+connector.onEvent = (events, cb) => console.log(events);
+
 // Listen for messages from users
 server.post('/api/messages', connector.listen());
 
