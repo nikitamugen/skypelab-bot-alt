@@ -63,6 +63,10 @@ const connector = new builder.ChatConnector({
 });
 
 const bot = new builder.UniversalBot(connector);
+bot.use(builder.Middleware.dialogVersion({
+    version: 1.0,
+    resetCommand: /^reset/i
+}));
 
 // Регистрация хранилища в памяти
 const inMemoryStorage = new builder.MemoryBotStorage();
