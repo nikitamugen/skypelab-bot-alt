@@ -12,13 +12,25 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
    console.log('%s listening to %s', server.name, server.url); 
 });
 
+const DB_USER = process.env.DB_USER;
+const DB_PASS = process.env.DB_PASS;
+const DB_URL = process.env.DB_URL;
+const DB_PROJECT = process.env.DB_PROJECT;
+console.log(`==================================`);
+console.log(`DB_USER: ${DB_USER}`);
+console.log(`DB_PASS: ${DB_PASS}`);
+console.log(`DB_URL: ${DB_URL}`);
+console.log(`DB_PROJECT: ${DB_PROJECT}`);
+console.log(`==================================`);
+
 server.use(restify.plugins.queryParser());
 server.use(body_parser.text());
 
 // Подключение к MongoDB
 const MongoClient = require('mongodb').MongoClient;
-const uri = "mongodb+srv://FlawlessTheory:flawlesstheory-flawedpractice@skypelab-bot.ohzx2.azure.mongodb.net/skypelab-bot?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { useNewUrlParser: true });
+const mongoURI = `mongodb://${DB_USER}:${DB_PASS}@${DB_URL}/${DB_PROJECT}`
+const mongoClient = new MongoClient(mongoURI, { useNewUrlParser: true });
+const mongoDB = () => mongoClient.db(DB_PROJECT);
 
 // Глобальные переменные для справочника ID каналов и подписок
 let channelIds = [];
@@ -26,32 +38,31 @@ let subs = [];
 let addresses = [];
 
 // Подключение клиента к базе данных и заполнение глобальных переменных
-client.connect().then(() => {
-	return client.db("skypelab-bot").collection("subs").find().toArray();
-}).then((subsCollection) => {
-	subs = subsCollection;
-}).then(() => {
-	return client.db("skypelab-bot").collection("channelIds").find().toArray();
-}).then((channelIdsCollection) => {
-	channelIds = channelIdsCollection;
-}).catch(err => {
-	console.log(err);
-});
+mongoClient.connect()
+	.then(() => mongoDB().collection("subs").find().toArray())
+	.then(subsCollection => this.subs = subsCollection)
+	.then(() => mongoDB().collection("channelIds").find().toArray())
+	.then(channelIdsCollection => this.channelIds = channelIdsCollection)
+	.catch(err => console.log(err));
 
-const botName = "skypelab-bot";
-
-var myAppId = "466688a6-0456-4d96-a826-b367ad44f826";
+const BOT_NAME = process.env.BOT_NAME;
+const BOT_ID = process.env.BOT_ID;
+const BOT_PASS = process.env.BOT_PASS;
+const BOT_META = process.env.BOT_META;
+console.log(`===============================`)
+console.log(`BOT_NAME ${BOT_NAME}`)
+console.log(`BOT_ID ${BOT_ID}`)
+console.log(`BOT_PASS ${BOT_PASS}`)
+console.log(`BOT_META ${BOT_META}`)
+console.log(`===============================`)
 
 // Create chat connector for communicating with the Bot Framework Service
 //
 const connector = new builder.ChatConnector({
-    appId: myAppId,
-    appPassword: process.env.MicrosoftAppPassword,
-    openIdMetadata: process.env.BotOpenIdMetadata
+    appId: this.BOT_ID,
+    appPassword: this.BOT_PASS,
+    openIdMetadata: this.BOT_META
 });
-
-// Прослушивание запросов от Camunda
-// server.post('api/camunda', connector.send("Camunda"));
 
 const bot = new builder.UniversalBot(connector);
 
@@ -63,7 +74,7 @@ bot.set('storage', inMemoryStorage);
 server.post('/api/messages', connector.listen());
 
 // Прослушивание запросов от GitLab
-server.post('/api/gitlab/projects/:project/actions/:action/notification', (req, res, next) => {
+server.post('/api/projects/:project/actions/:action/notifications', (req, res, next) => {
 	var project = req.params.project;
 	var action = req.params.action;
 	var notification = req.body;
@@ -83,10 +94,6 @@ server.post('/api/gitlab/projects/:project/actions/:action/notification', (req, 
 	res.send("request accepted");
 	next();
 });
-
-// server.post('api/gitlab', (req, res, next) => {
-
-// })
 
 // На нераспознанные сообщения бот молчит
 //
@@ -137,7 +144,7 @@ bot.dialog('setup', [(session) => {
 	if(channelIds.filter((element) => { element.channelId == currChannelId })) {
 		session.send(`Ваш идентификатор канала уже зарегистрирован.`);
 	} else {
-		const channelIdsCollection = client.db("skypelab-bot").collection("channelIds");
+		const channelIdsCollection = this.mongoDB().collection("channelIds");
 		channelIdsCollection.insertOne({channelId: currChannelId}).then(() => {
 			// Обновление списка идентификаторов
 			return channelIdsCollection.find().toArray();
@@ -208,7 +215,7 @@ bot.dialog('subscribe', [function (session) {
 		if(subs.filter((element) => { element.channelId == currChannelId && element.subName == subName })) {
 			session.send(`Подписка ${subname} уже существует.`);
 		} else {
-		const subsCollection = client.db("skypelab-bot").collection("subs");
+		const subsCollection = this.mongoDB().collection("subs");
 		subsCollection.insertOne({ channelId: currChannelId, 
 			subName: subName, 
 			project: session.dialogData.project,
@@ -246,7 +253,7 @@ bot.dialog('unsubscribe', [ function (session) {
 			var currChannelId = session.message.address.channelId;
 
 			if(subs.filter((element) => { element.channelId == currChannelId && element.subName == subName })) {
-				const subsCollection = client.db("skypelab-bot").collection("subs");
+				const subsCollection = this.mongoDB().collection("subs");
 				subsCollection.deleteOne({channelId: currChannelId, subName: subName})
 				.then(() => {
 					return subsCollection.find().toArray();
