@@ -73,7 +73,7 @@ const inMemoryStorage = new builder.MemoryBotStorage();
 bot.set('storage', inMemoryStorage);
 
 // Прослушивание сообщений от пользователей
-server.post('/api/messages', () => this.connector.listen());
+server.post('/api/messages', () => connector.listen());
 
 // // Прослушивание запросов от GitLab
 // server.post('/api/projects/:project/actions/:action/notifications', (req, res, next) => {
